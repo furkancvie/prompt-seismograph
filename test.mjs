@@ -1,0 +1,16 @@
+import {test} from 'node:test'; import assert from 'node:assert/strict'; import {normalize,similarity,evaluate} from './core.mjs';
+const sample={baseline:'Ankara Türkiye',variants:[{label:'typo',answer:'İstanbul Türkiye'}],rules:[{type:'contains',value:'Ankara'},{type:'forbids',value:'Paris'}]};
+test('Turkish casing',()=>assert.equal(normalize('İSTANBUL IŞIK'),'istanbul ışık'));
+test('unicode normalization',()=>assert.equal(normalize('Ａ  B'),'a b'));
+test('identical',()=>assert.equal(similarity('a b','b a'),1));
+test('disjoint',()=>assert.equal(similarity('a','b'),0));
+test('empty',()=>assert.equal(similarity('',''),1));
+test('partial',()=>assert.equal(similarity('a b','b c'),1/3));
+test('regression',()=>assert.equal(evaluate(sample).variants[0].regressions,1));
+test('forbidden',()=>assert.equal(evaluate({...sample,variants:[{label:'x',answer:'Paris'}]}).variants[0].failures,2));
+test('baseline failure not regression',()=>assert.equal(evaluate({...sample,baseline:'Paris',variants:[{label:'x',answer:'Paris'}]}).variants[0].regressions,0));
+test('exact',()=>assert.equal(evaluate({...sample,rules:[{type:'exact',value:'İstanbul Türkiye'}]}).variants[0].checks[0].pass,true));
+test('invalid rule',()=>assert.throws(()=>evaluate({...sample,rules:[{type:'magic',value:'x'}]})));
+test('empty variant',()=>assert.throws(()=>evaluate({...sample,variants:[{label:'x',answer:' '}]})));
+test('no variants',()=>assert.throws(()=>evaluate({...sample,variants:[]})));
+test('empty rules supported',()=>assert.equal(evaluate({...sample,rules:[]}).variants[0].failures,0));
